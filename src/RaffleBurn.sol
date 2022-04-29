@@ -45,7 +45,7 @@ contract RaffleBurn {
     /**
      * @notice initializes the raffle
      * @param prizeToken the address of the ERC721 token to raffle off
-     * @param tokenId the list of token ids to raffle off
+     * @param tokenIds the list of token ids to raffle off
      * @param paymentToken address of the ERC20 token used to buy tickets. Null address uses ETH
      * @param startTimestamp the timestamp at which the raffle starts
      * @param endTimestamp the timestamp at which the raffle ends
@@ -55,7 +55,7 @@ contract RaffleBurn {
      */
     function createRaffle(
         address prizeToken,
-        uint96 tokenId,
+        uint96[] calldata tokenIds,
         address paymentToken,
         uint48 startTimestamp,
         uint48 endTimestamp,
@@ -65,9 +65,6 @@ contract RaffleBurn {
         require(prizeToken != address(0));
         require(endTimestamp > block.timestamp);
         require(ticketPrice > 0);
-
-        // must have transfer approval from contract owner or token owner
-        IERC721(prizeToken).transferFrom(msg.sender, address(this), tokenId);
 
         raffleId = raffleCount++;
 
@@ -81,14 +78,36 @@ contract RaffleBurn {
             seed: 0
         });
 
-        rafflePrizes[raffleId].push(
-            Prize({
-                tokenAddress: prizeToken,
-                tokenId: tokenId,
-                owner: msg.sender,
-                claimed: false
-            })
-        );
+        addPrizes(raffleId, prizeToken, tokenIds);
+    }
+
+    /**
+     * @notice add prizes to raffle. Must have transfer approval from contract
+     *  owner or token owner
+     * @param raffleId the id of the raffle
+     * @param prizeToken the address of the ERC721 token to raffle off
+     * @param tokenIds the list of token ids to raffle off
+     */
+    function addPrizes(
+        uint256 raffleId,
+        address prizeToken,
+        uint96[] calldata tokenIds
+    ) public {
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            IERC721(prizeToken).transferFrom(
+                msg.sender,
+                address(this),
+                tokenIds[i]
+            );
+            rafflePrizes[raffleId].push(
+                Prize({
+                    tokenAddress: prizeToken,
+                    tokenId: tokenIds[i],
+                    owner: msg.sender,
+                    claimed: false
+                })
+            );
+        }
     }
 
     /**
