@@ -60,6 +60,7 @@ contract RaffleBurn {
         uint256 ticketPrice
     ) public returns (uint256 raffleId) {
         require(prizeToken != address(0), "prizeToken cannot be null");
+        require(paymentToken != address(0), "paymentToken cannot be null");
         require(
             endTimestamp > block.timestamp,
             "endTimestamp must be in the future"
