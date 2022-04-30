@@ -93,6 +93,7 @@ contract RaffleBurn {
         address prizeToken,
         uint96[] calldata tokenIds
     ) public {
+        require(tokenIds.length > 0, "Must add at least one prize");
         for (uint256 i = 0; i < tokenIds.length; i++) {
             IERC721(prizeToken).transferFrom(
                 msg.sender,
