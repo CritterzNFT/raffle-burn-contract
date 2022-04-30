@@ -78,7 +78,7 @@ abstract contract RaffleBurnHelper is CheatCodesDSTest {
     {
         DummyERC721(prizeToken).setApprovalForAll(address(rb), true);
         uint96[] memory tokenIds = new uint96[](1);
-        tokenIds[0] = 0;
+        tokenIds[0] = uint96(nft1.tokenOfOwnerByIndex(address(this), 1));
         raffleId = rb.createRaffle(
             prizeToken,
             tokenIds,
@@ -94,8 +94,8 @@ contract CreateRaffleTest is RaffleBurnHelper {
     function testCreateRaffle() public {
         nft1.setApprovalForAll(address(rb), true);
         uint96[] memory tokenIds = new uint96[](2);
-        tokenIds[0] = 0;
-        tokenIds[1] = 2;
+        tokenIds[0] = uint96(nft1.tokenOfOwnerByIndex(address(this), 2));
+        tokenIds[1] = uint96(nft1.tokenOfOwnerByIndex(address(this), 1));
         uint256 raffleId = rb.createRaffle(
             address(nft1),
             tokenIds,
