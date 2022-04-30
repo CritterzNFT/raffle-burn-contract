@@ -258,6 +258,69 @@ contract CreateRaffleTest is RaffleBurnHelper {
     }
 }
 
+contract AddPrizesTest is RaffleBurnHelper {
+    function testAddPrizes() public {
+        cheats.startPrank(a1);
+        uint96[] memory tokenIds = new uint96[](2);
+        tokenIds[0] = uint96(nft2.tokenOfOwnerByIndex(a1, 2));
+        tokenIds[1] = uint96(nft2.tokenOfOwnerByIndex(a1, 0));
+        nft2.setApprovalForAll(address(rb), true);
+        rb.addPrizes(123, address(nft2), tokenIds);
+
+        for (uint96 i = 0; i < tokenIds.length; i++) {
+            // prize token should be owned by contract
+            assertEq(nft2.ownerOf(tokenIds[i]), address(rb));
+
+            // check prize data
+            (
+                address tokenAddress,
+                uint96 tokenId,
+                address owner,
+                bool claimed
+            ) = rb.rafflePrizes(123, i);
+            assertEq(tokenAddress, address(nft2));
+            assertEq(tokenId, tokenIds[i]);
+            assertEq(owner, a1);
+            assertTrue(!claimed);
+        }
+    }
+
+    function testEmptyTokenIds() public {
+        uint96[] memory tokenIds = new uint96[](0);
+        cheats.expectRevert(bytes("tokenIds must be non-empty"));
+        rb.addPrizes(0, address(nft2), tokenIds);
+    }
+
+    function testInvalidTokenIds() public {
+        cheats.startPrank(a3);
+        nft2.setApprovalForAll(address(rb), true);
+        uint96[] memory tokenIds = new uint96[](3);
+        // create with token not owned by creator
+        tokenIds[0] = uint96(nft2.tokenOfOwnerByIndex(a3, 2));
+        tokenIds[1] = uint96(nft2.tokenOfOwnerByIndex(a3, 1));
+        tokenIds[2] = uint96(nft2.tokenOfOwnerByIndex(a2, 0));
+        cheats.expectRevert(
+            bytes("ERC721: transfer caller is not owner nor approved")
+        );
+        rb.addPrizes(42, address(nft2), tokenIds);
+
+        // create with duplicate tokens
+        tokenIds[2] = uint96(nft2.tokenOfOwnerByIndex(a3, 1));
+        cheats.expectRevert(bytes("ERC721: transfer from incorrect owner"));
+        rb.addPrizes(42, address(nft2), tokenIds);
+    }
+
+    function testInvalidRepeatAddPrizes() public {
+        cheats.startPrank(a1);
+        uint96[] memory tokenIds = new uint96[](1);
+        tokenIds[0] = uint96(nft2.tokenOfOwnerByIndex(a1, 0));
+        nft2.setApprovalForAll(address(rb), true);
+        rb.addPrizes(123, address(nft2), tokenIds);
+        cheats.expectRevert(bytes("ERC721: transfer from incorrect owner"));
+        rb.addPrizes(123, address(nft2), tokenIds);
+    }
+}
+
 contract BuyTicketsTest is RaffleBurnHelper {
     function testBuyTickets(uint256 allowance, uint96 ticketCount) public {
         cheats.assume(allowance >= ticketCount * PRICE);
