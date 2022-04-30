@@ -104,7 +104,148 @@ contract CreateRaffleTest is RaffleBurnHelper {
             uint48(block.timestamp + 100),
             100e18
         );
+
+        // check raffleId
         assertEq(raffleId, 0);
+
+        // check raffle data
+        (
+            address paymentToken,
+            uint96 seed,
+            uint48 startTimestamp,
+            uint48 endTimestamp,
+            uint256 ticketPrice,
+            bytes32 requestId
+        ) = rb.raffles(raffleId);
+        assertEq(paymentToken, address(t1));
+        assertEq(seed, 0);
+        assertEq(startTimestamp, uint48(block.timestamp));
+        assertEq(endTimestamp, uint48(block.timestamp + 100));
+        assertEq(ticketPrice, 100e18);
+        assertEq(requestId, bytes32(0));
+
+        for (uint96 i = 0; i < tokenIds.length; i++) {
+            // prize token should be owned by contract
+            assertEq(nft1.ownerOf(tokenIds[i]), address(rb));
+
+            // check prize data
+            (
+                address tokenAddress,
+                uint96 tokenId,
+                address owner,
+                bool claimed
+            ) = rb.rafflePrizes(raffleId, i);
+            assertEq(tokenAddress, address(nft1));
+            assertEq(tokenId, tokenIds[i]);
+            assertEq(owner, address(this));
+            assertTrue(!claimed);
+        }
+    }
+
+    function testPrizeNotApproved() public {
+        uint96[] memory tokenIds = new uint96[](2);
+        tokenIds[0] = uint96(nft1.tokenOfOwnerByIndex(address(this), 2));
+        tokenIds[1] = uint96(nft1.tokenOfOwnerByIndex(address(this), 1));
+        cheats.expectRevert(
+            bytes("ERC721: transfer caller is not owner nor approved")
+        );
+        rb.createRaffle(
+            address(nft1),
+            tokenIds,
+            address(t1),
+            uint48(block.timestamp),
+            uint48(block.timestamp + 100),
+            100e18
+        );
+    }
+
+    function testInvalidPrizeToken() public {
+        uint96[] memory tokenIds = new uint96[](1);
+        tokenIds[0] = uint96(nft1.tokenOfOwnerByIndex(address(this), 0));
+        cheats.expectRevert(bytes("prizeToken cannot be null"));
+        rb.createRaffle(
+            address(0),
+            tokenIds,
+            address(t2),
+            uint48(0),
+            uint48(block.timestamp),
+            100e18
+        );
+    }
+
+    function testInvalidPaymentToken() public {
+        uint96[] memory tokenIds = new uint96[](1);
+        tokenIds[0] = uint96(nft1.tokenOfOwnerByIndex(address(this), 1));
+        cheats.expectRevert(bytes("paymentToken cannot be null"));
+        rb.createRaffle(
+            address(nft3),
+            tokenIds,
+            address(0),
+            uint48(0),
+            uint48(block.timestamp),
+            100e18
+        );
+    }
+
+    function testInvalidEndTimestamp() public {
+        uint96[] memory tokenIds = new uint96[](1);
+        tokenIds[0] = uint96(nft1.tokenOfOwnerByIndex(address(this), 2));
+        cheats.expectRevert(bytes("endTimestamp must be in the future"));
+        rb.createRaffle(
+            address(nft1),
+            tokenIds,
+            address(t3),
+            uint48(block.timestamp),
+            uint48(block.timestamp),
+            100e18
+        );
+    }
+
+    function testInvalidTicketPrice() public {
+        uint96[] memory tokenIds = new uint96[](1);
+        tokenIds[0] = uint96(nft1.tokenOfOwnerByIndex(address(this), 2));
+        cheats.expectRevert(bytes("ticketPrice must be greater than 0"));
+        rb.createRaffle(
+            address(nft1),
+            tokenIds,
+            address(t3),
+            uint48(block.timestamp),
+            uint48(block.timestamp + DURATION),
+            0
+        );
+    }
+
+    function testInvalidTokenIds() public {
+        uint96[] memory tokenIds = new uint96[](3);
+        // create with token not owned by creator
+        tokenIds[0] = uint96(nft1.tokenOfOwnerByIndex(address(this), 2));
+        tokenIds[1] = uint96(nft1.tokenOfOwnerByIndex(address(this), 1));
+        tokenIds[2] = uint96(nft1.tokenOfOwnerByIndex(a1, 2));
+        cheats.expectRevert(
+            bytes("ERC721: transfer caller is not owner nor approved")
+        );
+        rb.createRaffle(
+            address(nft1),
+            tokenIds,
+            address(t3),
+            uint48(block.timestamp),
+            uint48(block.timestamp + DURATION),
+            1e18
+        );
+
+        // create with duplicate tokens
+        tokenIds[2] = uint96(nft1.tokenOfOwnerByIndex(address(this), 1));
+        cheats.expectRevert(
+            bytes("ERC721: transfer caller is not owner nor approved")
+        );
+        rb.createRaffle(
+            address(nft1),
+            tokenIds,
+            address(t3),
+            uint48(block.timestamp),
+            uint48(block.timestamp + DURATION),
+            1e18
+        );
     }
 }
 
