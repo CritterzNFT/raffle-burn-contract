@@ -225,6 +225,7 @@ contract CreateRaffleTest is RaffleBurnHelper {
     }
 
     function testInvalidTokenIds() public {
+        nft1.setApprovalForAll(address(rb), true);
         uint96[] memory tokenIds = new uint96[](3);
         // create with token not owned by creator
         tokenIds[0] = uint96(nft1.tokenOfOwnerByIndex(address(this), 2));
@@ -244,9 +245,7 @@ contract CreateRaffleTest is RaffleBurnHelper {
 
         // create with duplicate tokens
         tokenIds[2] = uint96(nft1.tokenOfOwnerByIndex(address(this), 1));
-        cheats.expectRevert(
-            bytes("ERC721: transfer caller is not owner nor approved")
-        );
+        cheats.expectRevert(bytes("ERC721: transfer from incorrect owner"));
         rb.createRaffle(
             address(nft1),
             tokenIds,
