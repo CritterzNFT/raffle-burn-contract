@@ -130,7 +130,7 @@ contract RaffleBurnTest is CheatCodesDSTest {
         uint96[] memory tokenIds = new uint96[](1);
         tokenIds[0] = 0;
         raffleId = rb.createRaffle(
-            address(nft1),
+            address(prizeToken),
             tokenIds,
             address(paymentToken),
             uint48(block.timestamp),
