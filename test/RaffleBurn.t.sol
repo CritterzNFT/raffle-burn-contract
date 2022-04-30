@@ -19,8 +19,16 @@ contract RaffleBurnTest is CheatCodesDSTest {
     DummyERC20 t3;
 
     uint256 constant PRICE = 100e18;
-    uint96 constant MIN_TICKETS = 100;
     uint256 constant DURATION = 100;
+    uint256 constant MAX_ALLOWANCE = 2**256 - 1;
+    uint96 constant MAX_TICKETS_PER_ACCOUNT = 2**96 - 1;
+
+    uint256 constant NFT1_MINTS = 3;
+    uint256 constant NFT2_MINTS = 100;
+    uint256 constant NFT3_MINTS = 0;
+    uint256 constant T1_ISSUANCE = PRICE * MAX_TICKETS_PER_ACCOUNT;
+    uint256 constant T2_ISSUANCE = PRICE * 10;
+    uint256 constant T3_ISSUANCE = 0;
 
     address a1 = 0x0000000000000000000000000000000000000001;
     address a2 = 0x0000000000000000000000000000000000000002;
@@ -54,41 +62,51 @@ contract RaffleBurnTest is CheatCodesDSTest {
         assertEq(raffleId, 0);
     }
 
-    function testBuyTickets() public {
-        uint256 raffleId = createDummyRaffle();
-        t1.approve(address(rb), PRICE * 100);
-        rb.buyTickets(raffleId, 5);
-        assertEq(t1.balanceOf(dead), PRICE * 5);
+    function testBuyTickets(uint256 allowance, uint96 ticketCount) public {
+        cheats.assume(allowance >= ticketCount * PRICE);
+        uint256 raffleId = createDummyRaffle(nft1, t1);
+        t1.approve(address(rb), allowance);
+        rb.buyTickets(raffleId, ticketCount);
+        assertEq(t1.balanceOf(dead), PRICE * ticketCount);
+    }
+
+    function testFailBuyTicketsAllowance(uint256 allowance, uint96 ticketCount)
+        public
+    {
+        cheats.assume(allowance < ticketCount * PRICE);
+        uint256 raffleId = createDummyRaffle(nft1, t1);
+        t1.approve(address(rb), allowance);
+        rb.buyTickets(raffleId, ticketCount);
+    }
+
+    function testFailBuyTicketsIssuance(uint96 ticketCount) public {
+        cheats.assume(T2_ISSUANCE < ticketCount * PRICE);
+        uint256 raffleId = createDummyRaffle(nft1, t2);
+        t1.approve(address(rb), MAX_ALLOWANCE);
+        rb.buyTickets(raffleId, ticketCount);
     }
 
     function testInitializeSeed() public {
-        uint256 raffleId = createDummyRaffle();
-        t1.approve(address(rb), PRICE * 100);
-        rb.buyTickets(raffleId, MIN_TICKETS);
+        uint256 raffleId = createDummyRaffle(nft1, t1);
+        t1.approve(address(rb), MAX_ALLOWANCE);
+        rb.buyTickets(raffleId, 5);
         cheats.warp(block.timestamp + DURATION + 1);
         rb.initializeSeed(raffleId);
     }
 
     function testFailInitializeSeed1() public {
-        uint256 raffleId = createDummyRaffle();
-        t1.approve(address(rb), PRICE * 100);
-        rb.buyTickets(raffleId, MIN_TICKETS);
+        uint256 raffleId = createDummyRaffle(nft1, t1);
+        t1.approve(address(rb), MAX_ALLOWANCE);
+        rb.buyTickets(raffleId, 5);
+        // initialize too early
         cheats.warp(block.timestamp + DURATION);
         rb.initializeSeed(raffleId);
     }
 
-    function testFailInitializeSeed2() public {
-        uint256 raffleId = createDummyRaffle();
-        t1.approve(address(rb), PRICE * 99);
-        rb.buyTickets(raffleId, MIN_TICKETS);
-        cheats.warp(block.timestamp + DURATION + 1);
-        rb.initializeSeed(raffleId);
-    }
-
     function testClaimPrize() public {
-        uint256 raffleId = createDummyRaffle();
-        t1.approve(address(rb), PRICE * 100);
-        rb.buyTickets(raffleId, MIN_TICKETS);
+        uint256 raffleId = createDummyRaffle(nft1, t1);
+        t1.approve(address(rb), MAX_ALLOWANCE);
+        rb.buyTickets(raffleId, 5);
         cheats.warp(block.timestamp + DURATION + 1);
         rb.initializeSeed(raffleId);
         uint256 prizeIndex = 0;
@@ -102,18 +120,17 @@ contract RaffleBurnTest is CheatCodesDSTest {
         assertEq(nft1.ownerOf(0), winner);
     }
 
-    function createDummyRaffle() public returns (uint256 raffleId) {
-        nft1.setApprovalForAll(address(rb), true);
-        address[] memory poolPrizeTokens = new address[](1);
-        poolPrizeTokens[0] = address(nft2);
-        uint64[] memory poolPrizeTokenWeights = new uint64[](1);
-        poolPrizeTokenWeights[0] = 5000;
+    function createDummyRaffle(DummyERC721 prizeToken, DummyERC20 paymentToken)
+        public
+        returns (uint256 raffleId)
+    {
+        prizeToken.setApprovalForAll(address(rb), true);
         uint96[] memory tokenIds = new uint96[](1);
         tokenIds[0] = 0;
         raffleId = rb.createRaffle(
             address(nft1),
             tokenIds,
-            address(t1),
+            address(paymentToken),
             uint48(block.timestamp),
             uint48(block.timestamp + DURATION),
             PRICE
@@ -121,29 +138,29 @@ contract RaffleBurnTest is CheatCodesDSTest {
     }
 
     function mintTokens() public {
-        nft1.mint(address(this), 3);
-        nft1.mint(a1, 3);
-        nft1.mint(a2, 3);
-        nft1.mint(a3, 3);
-        nft2.mint(address(this), 3);
-        nft2.mint(a1, 3);
-        nft2.mint(a2, 3);
-        nft2.mint(a3, 3);
-        nft3.mint(address(this), 3);
-        nft3.mint(a1, 3);
-        nft3.mint(a2, 3);
-        nft3.mint(a3, 3);
-        t1.mint(address(this), 1000000e18);
-        t1.mint(a1, 1000000e18);
-        t1.mint(a2, 1000000e18);
-        t1.mint(a3, 1000000e18);
-        t2.mint(address(this), 1000000e18);
-        t2.mint(a1, 1000000e18);
-        t2.mint(a2, 1000000e18);
-        t2.mint(a3, 1000000e18);
-        t3.mint(address(this), 1000000e18);
-        t3.mint(a1, 1000000e18);
-        t3.mint(a2, 1000000e18);
-        t3.mint(a3, 1000000e18);
+        nft1.mint(address(this), NFT1_MINTS);
+        nft1.mint(a1, NFT1_MINTS);
+        nft1.mint(a2, NFT1_MINTS);
+        nft1.mint(a3, NFT1_MINTS);
+        nft2.mint(address(this), NFT2_MINTS);
+        nft2.mint(a1, NFT2_MINTS);
+        nft2.mint(a2, NFT2_MINTS);
+        nft2.mint(a3, NFT2_MINTS);
+        nft3.mint(address(this), NFT3_MINTS);
+        nft3.mint(a1, NFT3_MINTS);
+        nft3.mint(a2, NFT3_MINTS);
+        nft3.mint(a3, NFT3_MINTS);
+        t1.mint(address(this), T1_ISSUANCE);
+        t1.mint(a1, T1_ISSUANCE);
+        t1.mint(a2, T1_ISSUANCE);
+        t1.mint(a3, T1_ISSUANCE);
+        t2.mint(address(this), T2_ISSUANCE);
+        t2.mint(a1, T2_ISSUANCE);
+        t2.mint(a2, T2_ISSUANCE);
+        t2.mint(a3, T2_ISSUANCE);
+        t3.mint(address(this), T3_ISSUANCE);
+        t3.mint(a1, T3_ISSUANCE);
+        t3.mint(a2, T3_ISSUANCE);
+        t3.mint(a3, T3_ISSUANCE);
     }
 }
