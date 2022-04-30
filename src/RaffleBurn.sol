@@ -19,7 +19,6 @@ contract RaffleBurn {
 
     struct Raffle {
         address paymentToken;
-        uint96 minTickets;
         uint96 seed;
         uint48 startTimestamp;
         uint48 endTimestamp;
@@ -50,7 +49,6 @@ contract RaffleBurn {
      * @param startTimestamp the timestamp at which the raffle starts
      * @param endTimestamp the timestamp at which the raffle ends
      * @param ticketPrice the price of each ticket
-     * @param minTickets the minimum number of tickets required for raffle to succeed
      * @return raffleId the id of the raffle
      */
     function createRaffle(
@@ -59,12 +57,14 @@ contract RaffleBurn {
         address paymentToken,
         uint48 startTimestamp,
         uint48 endTimestamp,
-        uint256 ticketPrice,
-        uint96 minTickets
+        uint256 ticketPrice
     ) public returns (uint256 raffleId) {
-        require(prizeToken != address(0));
-        require(endTimestamp > block.timestamp);
-        require(ticketPrice > 0);
+        require(prizeToken != address(0), "prizeToken cannot be null");
+        require(
+            endTimestamp > block.timestamp,
+            "endTimestamp must be in the future"
+        );
+        require(ticketPrice > 0, "ticketPrice must be greater than 0");
 
         raffleId = raffleCount++;
 
@@ -72,7 +72,6 @@ contract RaffleBurn {
             paymentToken: paymentToken,
             startTimestamp: startTimestamp,
             endTimestamp: endTimestamp,
-            minTickets: minTickets,
             ticketPrice: ticketPrice,
             requestId: bytes32(0),
             seed: 0
@@ -246,14 +245,6 @@ contract RaffleBurn {
         return
             raffleTickets[raffleId][raffleTickets[raffleId].length - 1].endId *
             raffles[raffleId].ticketPrice;
-    }
-
-    function getMinimumSales(uint256 raffleId)
-        public
-        view
-        returns (uint256 minimumSales)
-    {
-        return raffles[raffleId].minTickets * raffles[raffleId].ticketPrice;
     }
 
     /**
