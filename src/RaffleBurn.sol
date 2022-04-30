@@ -167,8 +167,6 @@ contract RaffleBurn {
         Raffle memory raffle = raffles[raffleId];
         require(raffle.endTimestamp < block.timestamp, "Raffle has not ended");
         require(raffle.seed == 0, "Seed already initialized");
-        // uint224 royaltyAmount = uint224(getRoyaltyAmount(raffleId));
-        // accumulateRoyalty(raffle.paymentToken, royaltyAmount);
         fakeRequestRandomWords(raffleId);
     }
 
