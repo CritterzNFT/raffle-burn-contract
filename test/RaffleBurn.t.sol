@@ -21,12 +21,11 @@ contract RaffleBurnTest is CheatCodesDSTest {
     uint256 constant PRICE = 100e18;
     uint256 constant DURATION = 100;
     uint256 constant MAX_ALLOWANCE = 2**256 - 1;
-    uint96 constant MAX_TICKETS_PER_ACCOUNT = 2**96 - 1;
 
     uint256 constant NFT1_MINTS = 3;
     uint256 constant NFT2_MINTS = 100;
     uint256 constant NFT3_MINTS = 0;
-    uint256 constant T1_ISSUANCE = PRICE * MAX_TICKETS_PER_ACCOUNT;
+    uint256 constant T1_ISSUANCE = PRICE * type(uint96).max;
     uint256 constant T2_ISSUANCE = PRICE * 10;
     uint256 constant T3_ISSUANCE = 0;
 
@@ -70,19 +69,23 @@ contract RaffleBurnTest is CheatCodesDSTest {
         assertEq(t1.balanceOf(dead), PRICE * ticketCount);
     }
 
-    function testFailBuyTicketsAllowance(uint256 allowance, uint96 ticketCount)
-        public
-    {
+    function testCannotBuyTicketsAllowance(
+        uint256 allowance,
+        uint96 ticketCount
+    ) public {
         cheats.assume(allowance < ticketCount * PRICE);
         uint256 raffleId = createDummyRaffle(nft1, t1);
         t1.approve(address(rb), allowance);
+        cheats.expectRevert(bytes("ERC20: insufficient allowance"));
         rb.buyTickets(raffleId, ticketCount);
     }
 
-    function testFailBuyTicketsIssuance(uint96 ticketCount) public {
+    function testCannotBuyTicketsIssuance(uint96 ticketCount) public {
+        // spend more than the issuance
         cheats.assume(T2_ISSUANCE < ticketCount * PRICE);
         uint256 raffleId = createDummyRaffle(nft1, t2);
-        t1.approve(address(rb), MAX_ALLOWANCE);
+        t2.approve(address(rb), MAX_ALLOWANCE);
+        cheats.expectRevert(bytes("ERC20: transfer amount exceeds balance"));
         rb.buyTickets(raffleId, ticketCount);
     }
 
@@ -94,12 +97,13 @@ contract RaffleBurnTest is CheatCodesDSTest {
         rb.initializeSeed(raffleId);
     }
 
-    function testFailInitializeSeed1() public {
+    function testCannotInitializeSeed() public {
         uint256 raffleId = createDummyRaffle(nft1, t1);
         t1.approve(address(rb), MAX_ALLOWANCE);
         rb.buyTickets(raffleId, 5);
         // initialize too early
         cheats.warp(block.timestamp + DURATION);
+        cheats.expectRevert(bytes("Raffle has not ended"));
         rb.initializeSeed(raffleId);
     }
 
