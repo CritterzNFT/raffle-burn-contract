@@ -7,7 +7,7 @@ import "./mock/DummyERC20.sol";
 import "../src/RaffleBurn.sol";
 import "forge-std/console.sol";
 
-contract RaffleBurnTest is CheatCodesDSTest {
+abstract contract RaffleBurnHelper is CheatCodesDSTest {
     RaffleBurn rb;
 
     DummyERC721 nft1;
@@ -45,6 +45,52 @@ contract RaffleBurnTest is CheatCodesDSTest {
         mintTokens();
     }
 
+    function mintTokens() public {
+        nft1.mint(address(this), NFT1_MINTS);
+        nft1.mint(a1, NFT1_MINTS);
+        nft1.mint(a2, NFT1_MINTS);
+        nft1.mint(a3, NFT1_MINTS);
+        nft2.mint(address(this), NFT2_MINTS);
+        nft2.mint(a1, NFT2_MINTS);
+        nft2.mint(a2, NFT2_MINTS);
+        nft2.mint(a3, NFT2_MINTS);
+        nft3.mint(address(this), NFT3_MINTS);
+        nft3.mint(a1, NFT3_MINTS);
+        nft3.mint(a2, NFT3_MINTS);
+        nft3.mint(a3, NFT3_MINTS);
+        t1.mint(address(this), T1_ISSUANCE);
+        t1.mint(a1, T1_ISSUANCE);
+        t1.mint(a2, T1_ISSUANCE);
+        t1.mint(a3, T1_ISSUANCE);
+        t2.mint(address(this), T2_ISSUANCE);
+        t2.mint(a1, T2_ISSUANCE);
+        t2.mint(a2, T2_ISSUANCE);
+        t2.mint(a3, T2_ISSUANCE);
+        t3.mint(address(this), T3_ISSUANCE);
+        t3.mint(a1, T3_ISSUANCE);
+        t3.mint(a2, T3_ISSUANCE);
+        t3.mint(a3, T3_ISSUANCE);
+    }
+
+    function createDummyRaffle(DummyERC721 prizeToken, DummyERC20 paymentToken)
+        public
+        returns (uint256 raffleId)
+    {
+        prizeToken.setApprovalForAll(address(rb), true);
+        uint96[] memory tokenIds = new uint96[](1);
+        tokenIds[0] = 0;
+        raffleId = rb.createRaffle(
+            address(prizeToken),
+            tokenIds,
+            address(paymentToken),
+            uint48(block.timestamp),
+            uint48(block.timestamp + DURATION),
+            PRICE
+        );
+    }
+}
+
+contract CreateRaffleTest is RaffleBurnHelper {
     function testCreateRaffle() public {
         nft1.setApprovalForAll(address(rb), true);
         uint96[] memory tokenIds = new uint96[](2);
@@ -60,7 +106,9 @@ contract RaffleBurnTest is CheatCodesDSTest {
         );
         assertEq(raffleId, 0);
     }
+}
 
+contract BuyTicketsTest is RaffleBurnHelper {
     function testBuyTickets(uint256 allowance, uint96 ticketCount) public {
         cheats.assume(allowance >= ticketCount * PRICE);
         uint256 raffleId = createDummyRaffle(nft1, t1);
@@ -88,7 +136,9 @@ contract RaffleBurnTest is CheatCodesDSTest {
         cheats.expectRevert(bytes("ERC20: transfer amount exceeds balance"));
         rb.buyTickets(raffleId, ticketCount);
     }
+}
 
+contract InitializeSeedTest is RaffleBurnHelper {
     function testInitializeSeed() public {
         uint256 raffleId = createDummyRaffle(nft1, t1);
         t1.approve(address(rb), MAX_ALLOWANCE);
@@ -104,7 +154,9 @@ contract RaffleBurnTest is CheatCodesDSTest {
         cheats.expectRevert(bytes("Raffle has not ended"));
         rb.initializeSeed(raffleId);
     }
+}
 
+contract ClaimPrizeTest is RaffleBurnHelper {
     function testClaimPrize() public {
         uint256 raffleId = createDummyRaffle(nft1, t1);
         t1.approve(address(rb), MAX_ALLOWANCE);
@@ -120,49 +172,5 @@ contract RaffleBurnTest is CheatCodesDSTest {
         );
         rb.claimPrize(winner, raffleId, prizeIndex, ticketPurchaseIndex);
         assertEq(nft1.ownerOf(0), winner);
-    }
-
-    function createDummyRaffle(DummyERC721 prizeToken, DummyERC20 paymentToken)
-        public
-        returns (uint256 raffleId)
-    {
-        prizeToken.setApprovalForAll(address(rb), true);
-        uint96[] memory tokenIds = new uint96[](1);
-        tokenIds[0] = 0;
-        raffleId = rb.createRaffle(
-            address(prizeToken),
-            tokenIds,
-            address(paymentToken),
-            uint48(block.timestamp),
-            uint48(block.timestamp + DURATION),
-            PRICE
-        );
-    }
-
-    function mintTokens() public {
-        nft1.mint(address(this), NFT1_MINTS);
-        nft1.mint(a1, NFT1_MINTS);
-        nft1.mint(a2, NFT1_MINTS);
-        nft1.mint(a3, NFT1_MINTS);
-        nft2.mint(address(this), NFT2_MINTS);
-        nft2.mint(a1, NFT2_MINTS);
-        nft2.mint(a2, NFT2_MINTS);
-        nft2.mint(a3, NFT2_MINTS);
-        nft3.mint(address(this), NFT3_MINTS);
-        nft3.mint(a1, NFT3_MINTS);
-        nft3.mint(a2, NFT3_MINTS);
-        nft3.mint(a3, NFT3_MINTS);
-        t1.mint(address(this), T1_ISSUANCE);
-        t1.mint(a1, T1_ISSUANCE);
-        t1.mint(a2, T1_ISSUANCE);
-        t1.mint(a3, T1_ISSUANCE);
-        t2.mint(address(this), T2_ISSUANCE);
-        t2.mint(a1, T2_ISSUANCE);
-        t2.mint(a2, T2_ISSUANCE);
-        t2.mint(a3, T2_ISSUANCE);
-        t3.mint(address(this), T3_ISSUANCE);
-        t3.mint(a1, T3_ISSUANCE);
-        t3.mint(a2, T3_ISSUANCE);
-        t3.mint(a3, T3_ISSUANCE);
     }
 }
