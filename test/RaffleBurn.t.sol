@@ -72,17 +72,17 @@ abstract contract RaffleBurnHelper is CheatCodesDSTest {
         t3.mint(a3, T3_ISSUANCE);
     }
 
-    function createDummyRaffle(DummyERC721 prizeToken, DummyERC20 paymentToken)
+    function createDummyRaffle(address prizeToken, address paymentToken)
         public
         returns (uint256 raffleId)
     {
-        prizeToken.setApprovalForAll(address(rb), true);
+        DummyERC721(prizeToken).setApprovalForAll(address(rb), true);
         uint96[] memory tokenIds = new uint96[](1);
         tokenIds[0] = 0;
         raffleId = rb.createRaffle(
-            address(prizeToken),
+            prizeToken,
             tokenIds,
-            address(paymentToken),
+            paymentToken,
             uint48(block.timestamp),
             uint48(block.timestamp + DURATION),
             PRICE
@@ -111,7 +111,7 @@ contract CreateRaffleTest is RaffleBurnHelper {
 contract BuyTicketsTest is RaffleBurnHelper {
     function testBuyTickets(uint256 allowance, uint96 ticketCount) public {
         cheats.assume(allowance >= ticketCount * PRICE);
-        uint256 raffleId = createDummyRaffle(nft1, t1);
+        uint256 raffleId = createDummyRaffle(address(nft1), address(t1));
         t1.approve(address(rb), allowance);
         rb.buyTickets(raffleId, ticketCount);
         assertEq(t1.balanceOf(dead), PRICE * ticketCount);
@@ -122,7 +122,7 @@ contract BuyTicketsTest is RaffleBurnHelper {
         uint96 ticketCount
     ) public {
         cheats.assume(allowance < ticketCount * PRICE);
-        uint256 raffleId = createDummyRaffle(nft1, t1);
+        uint256 raffleId = createDummyRaffle(address(nft1), address(t1));
         t1.approve(address(rb), allowance);
         cheats.expectRevert(bytes("ERC20: insufficient allowance"));
         rb.buyTickets(raffleId, ticketCount);
@@ -131,7 +131,7 @@ contract BuyTicketsTest is RaffleBurnHelper {
     function testCannotBuyTicketsIssuance(uint96 ticketCount) public {
         // spend more than the issuance
         cheats.assume(T2_ISSUANCE < ticketCount * PRICE);
-        uint256 raffleId = createDummyRaffle(nft1, t2);
+        uint256 raffleId = createDummyRaffle(address(nft1), address(t2));
         t2.approve(address(rb), MAX_ALLOWANCE);
         cheats.expectRevert(bytes("ERC20: transfer amount exceeds balance"));
         rb.buyTickets(raffleId, ticketCount);
@@ -140,14 +140,14 @@ contract BuyTicketsTest is RaffleBurnHelper {
 
 contract InitializeSeedTest is RaffleBurnHelper {
     function testInitializeSeed() public {
-        uint256 raffleId = createDummyRaffle(nft1, t1);
+        uint256 raffleId = createDummyRaffle(address(nft1), address(t1));
         t1.approve(address(rb), MAX_ALLOWANCE);
         cheats.warp(block.timestamp + DURATION + 1);
         rb.initializeSeed(raffleId);
     }
 
     function testCannotInitializeSeed() public {
-        uint256 raffleId = createDummyRaffle(nft1, t1);
+        uint256 raffleId = createDummyRaffle(address(nft1), address(t1));
         t1.approve(address(rb), MAX_ALLOWANCE);
         // initialize too early
         cheats.warp(block.timestamp + DURATION);
@@ -158,7 +158,7 @@ contract InitializeSeedTest is RaffleBurnHelper {
 
 contract ClaimPrizeTest is RaffleBurnHelper {
     function testClaimPrize() public {
-        uint256 raffleId = createDummyRaffle(nft1, t1);
+        uint256 raffleId = createDummyRaffle(address(nft1), address(t1));
         t1.approve(address(rb), MAX_ALLOWANCE);
         rb.buyTickets(raffleId, 5);
         cheats.warp(block.timestamp + DURATION + 1);
