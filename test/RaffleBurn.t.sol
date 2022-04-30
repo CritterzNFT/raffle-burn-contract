@@ -92,7 +92,6 @@ contract RaffleBurnTest is CheatCodesDSTest {
     function testInitializeSeed() public {
         uint256 raffleId = createDummyRaffle(nft1, t1);
         t1.approve(address(rb), MAX_ALLOWANCE);
-        rb.buyTickets(raffleId, 5);
         cheats.warp(block.timestamp + DURATION + 1);
         rb.initializeSeed(raffleId);
     }
@@ -100,7 +99,6 @@ contract RaffleBurnTest is CheatCodesDSTest {
     function testCannotInitializeSeed() public {
         uint256 raffleId = createDummyRaffle(nft1, t1);
         t1.approve(address(rb), MAX_ALLOWANCE);
-        rb.buyTickets(raffleId, 5);
         // initialize too early
         cheats.warp(block.timestamp + DURATION);
         cheats.expectRevert(bytes("Raffle has not ended"));
