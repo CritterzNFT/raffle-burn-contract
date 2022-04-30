@@ -119,7 +119,7 @@ contract RaffleBurn {
         uint256 cost = raffles[raffleId].ticketPrice * ticketCount;
         IERC20(raffles[raffleId].paymentToken).transferFrom(
             msg.sender,
-            address(0),
+            address(0xdead),
             cost
         );
         // give tickets to account
