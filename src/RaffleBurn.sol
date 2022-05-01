@@ -364,12 +364,12 @@ contract RaffleBurn is VRFConsumerBaseV2 {
      * @return ticketCount the number of tickets
      */
     function getTicketCount(uint256 raffleId)
-        external
+        public
         view
         returns (uint256 ticketCount)
     {
-        return
-            raffleTickets[raffleId][raffleTickets[raffleId].length - 1].endId;
+        uint256 length = raffleTickets[raffleId].length;
+        return length > 0 ? raffleTickets[raffleId][length - 1].endId : 0;
     }
 
     /**
@@ -382,9 +382,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
         view
         returns (uint256 ticketSales)
     {
-        return
-            raffleTickets[raffleId][raffleTickets[raffleId].length - 1].endId *
-            raffles[raffleId].ticketPrice;
+        return getTicketCount(raffleId) * raffles[raffleId].ticketPrice;
     }
 
     function _getPurchaseStartId(uint256 raffleId, uint256 ticketPurchaseIndex)
