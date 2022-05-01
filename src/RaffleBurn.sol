@@ -238,19 +238,22 @@ contract RaffleBurn is VRFConsumerBaseV2 {
      * @dev binary search for winner address
      * @param raffleId the id of the raffle to get winner for
      * @param prizeIndex the index of the prize to get winner for
-     * @return winner the winner address
+     * @return account the winner address
+     * @return ticketPurchaseIndex the index of the winner ticket purchase
+     * @return ticketId the id of the winner ticket
      */
     function getWinner(uint256 raffleId, uint256 prizeIndex)
-        external
+        public
         view
-        returns (address winner)
+        returns (
+            address account,
+            uint256 ticketPurchaseIndex,
+            uint256 ticketId
+        )
     {
-        uint256 ticketId = getWinnerTicketId(raffleId, prizeIndex);
-        uint256 ticketPurchaseIndex = getTicketPurchaseIndex(
-            raffleId,
-            ticketId
-        );
-        return raffleTickets[raffleId][ticketPurchaseIndex].owner;
+        ticketId = getWinnerTicketId(raffleId, prizeIndex);
+        ticketPurchaseIndex = getTicketPurchaseIndex(raffleId, ticketId);
+        account = raffleTickets[raffleId][ticketPurchaseIndex].owner;
     }
 
     function getTotalSales(uint256 raffleId)

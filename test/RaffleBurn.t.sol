@@ -388,13 +388,11 @@ contract ClaimPrizeTest is RaffleBurnHelper {
         cheats.warp(block.timestamp + DURATION + 1);
         rb.initializeSeed(raffleId, bytes32(0), uint64(0));
         uint256 prizeIndex = 0;
-        uint256 ticketId = rb.getWinnerTicketId(raffleId, prizeIndex);
-        address winner = rb.getWinner(raffleId, prizeIndex);
-        uint256 ticketPurchaseIndex = rb.getTicketPurchaseIndex(
+        (address account, uint256 ticketPurchaseIndex, ) = rb.getWinner(
             raffleId,
-            ticketId
+            prizeIndex
         );
-        rb.claimPrize(winner, raffleId, prizeIndex, ticketPurchaseIndex);
-        assertEq(nft1.ownerOf(0), winner);
+        rb.claimPrize(account, raffleId, prizeIndex, ticketPurchaseIndex);
+        assertEq(nft1.ownerOf(0), account);
     }
 }
