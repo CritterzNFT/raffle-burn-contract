@@ -256,16 +256,6 @@ contract RaffleBurn is VRFConsumerBaseV2 {
         account = raffleTickets[raffleId][ticketPurchaseIndex].owner;
     }
 
-    function getTotalSales(uint256 raffleId)
-        external
-        view
-        returns (uint256 totalSales)
-    {
-        return
-            raffleTickets[raffleId][raffleTickets[raffleId].length - 1].endId *
-            raffles[raffleId].ticketPrice;
-    }
-
     /**
      * @dev binary search for ticket purchase index of ticketId
      * @param raffleId the id of the raffle to get winner for
@@ -380,6 +370,21 @@ contract RaffleBurn is VRFConsumerBaseV2 {
     {
         return
             raffleTickets[raffleId][raffleTickets[raffleId].length - 1].endId;
+    }
+
+    /**
+     * @notice get total ticket sales for raffle
+     * @param raffleId the id of the raffle to get number of tickets for
+     * @return ticketSales the number of tickets
+     */
+    function getTicketSales(uint256 raffleId)
+        external
+        view
+        returns (uint256 ticketSales)
+    {
+        return
+            raffleTickets[raffleId][raffleTickets[raffleId].length - 1].endId *
+            raffles[raffleId].ticketPrice;
     }
 
     function _getPurchaseStartId(uint256 raffleId, uint256 ticketPurchaseIndex)
