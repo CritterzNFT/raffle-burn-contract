@@ -65,7 +65,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
         uint48 startTimestamp,
         uint48 endTimestamp,
         uint256 ticketPrice
-    ) public returns (uint256 raffleId) {
+    ) external returns (uint256 raffleId) {
         require(prizeToken != address(0), "prizeToken cannot be null");
         require(paymentToken != address(0), "paymentToken cannot be null");
         require(
@@ -122,7 +122,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
      * @param raffleId the id of the raffle to buy ticket for
      * @param ticketCount the number of tickets to buy
      */
-    function buyTickets(uint256 raffleId, uint96 ticketCount) public {
+    function buyTickets(uint256 raffleId, uint96 ticketCount) external {
         // transfer payment token from account
         uint256 cost = raffles[raffleId].ticketPrice * ticketCount;
         IERC20(raffles[raffleId].paymentToken).transferFrom(
@@ -145,7 +145,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
         uint256 raffleId,
         uint256 prizeIndex,
         uint256 ticketPurchaseIndex
-    ) public {
+    ) external {
         require(raffles[raffleId].seed != 0, "Winner not set");
         require(
             to == raffleTickets[raffleId][ticketPurchaseIndex].owner,
@@ -175,7 +175,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
         uint256 raffleId,
         bytes32 keyHash,
         uint64 subscriptionId
-    ) public {
+    ) external {
         require(
             raffles[raffleId].endTimestamp < block.timestamp,
             "Raffle has not ended"
@@ -233,7 +233,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
      * @return winner the winner address
      */
     function getWinner(uint256 raffleId, uint256 prizeIndex)
-        public
+        external
         view
         returns (address winner)
     {
@@ -246,7 +246,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
     }
 
     function getTotalSales(uint256 raffleId)
-        public
+        external
         view
         returns (uint256 totalSales)
     {
