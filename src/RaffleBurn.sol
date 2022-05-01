@@ -309,6 +309,40 @@ contract RaffleBurn is VRFConsumerBaseV2 {
     }
 
     /**
+     * @notice get total number of tickets for a purchase
+     * @param raffleId the id of the raffle to get number of tickets for
+     * @param ticketPurchaseIndex the index of the ticket purchase to get number of tickets for
+     * @return ticketCount the number of tickets
+     */
+    function getPurchaseTicketCount(
+        uint256 raffleId,
+        uint256 ticketPurchaseIndex
+    ) public view returns (uint256 ticketCount) {
+        return
+            _getPurchaseEndId(raffleId, ticketPurchaseIndex) -
+            _getPurchaseStartId(raffleId, ticketPurchaseIndex);
+    }
+
+    /**
+     * @notice get total number of tickets purchased by an account
+     * @param raffleId the id of the raffle to get number of tickets for
+     * @param account the account to get number of tickets for
+     * @return ticketCount the number of tickets
+     */
+    function getAccountTicketCount(uint256 raffleId, address account)
+        external
+        view
+        returns (uint256 ticketCount)
+    {
+        for (uint256 i = 0; i < raffleTickets[raffleId].length; i++) {
+            if (raffleTickets[raffleId][i].owner == account) {
+                ticketCount += getPurchaseTicketCount(raffleId, i);
+            }
+        }
+        return ticketCount;
+    }
+
+    /**
      * @notice get total number of prizes for raffle
      * @param raffleId the id of the raffle to get number of prizes for
      * @return prizeCount the number of prizes
@@ -335,7 +369,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
     }
 
     /**
-     * @notice get total number of tickets for raffle
+     * @notice get total number of tickets sold for raffle
      * @param raffleId the id of the raffle to get number of tickets for
      * @return ticketCount the number of tickets
      */
