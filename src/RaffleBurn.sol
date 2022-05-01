@@ -131,7 +131,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
             cost
         );
         // give tickets to account
-        _sendTicket(msg.sender, raffleId, ticketCount);
+        _mintTickets(msg.sender, raffleId, ticketCount);
     }
 
     /**
@@ -212,12 +212,12 @@ contract RaffleBurn is VRFConsumerBaseV2 {
     }
 
     /**
-     * @dev sends ticket to account
+     * @dev mints tickets to account
      * @param to the account to send ticket to
      * @param raffleId the id of the raffle to send ticket for
      * @param ticketCount the number of tickets to send
      */
-    function _sendTicket(
+    function _mintTickets(
         address to,
         uint256 raffleId,
         uint96 ticketCount
