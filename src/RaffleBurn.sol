@@ -146,20 +146,27 @@ contract RaffleBurn is VRFConsumerBaseV2 {
         uint256 prizeIndex,
         uint256 ticketPurchaseIndex
     ) external {
-        require(raffles[raffleId].seed != 0, "Winner not set");
+        require(raffles[raffleId].seed != 0, "Seed not set");
+        require(
+            rafflePrizes[raffleId][prizeIndex].claimed == false,
+            "Prize already claimed"
+        );
         require(
             to == raffleTickets[raffleId][ticketPurchaseIndex].owner,
             "Not ticket owner"
         );
-        uint256 ticketId = getWinnerTicketId(raffleId, prizeIndex);
-        uint96 startId = ticketPurchaseIndex > 0
+
+        uint256 winnerTicketId = getWinnerTicketId(raffleId, prizeIndex);
+        uint96 purchaseStartId = ticketPurchaseIndex > 0
             ? raffleTickets[raffleId][ticketPurchaseIndex - 1].endId
             : 0;
-        uint96 endId = raffleTickets[raffleId][ticketPurchaseIndex].endId;
+        uint96 purchaseEndId = raffleTickets[raffleId][ticketPurchaseIndex]
+            .endId;
         require(
-            ticketId >= startId && ticketId < endId,
-            "Ticket id out of winner range"
+            purchaseStartId <= winnerTicketId && winnerTicketId < purchaseEndId,
+            "Not winner ticket"
         );
+
         rafflePrizes[raffleId][prizeIndex].claimed = true;
         IERC721(rafflePrizes[raffleId][prizeIndex].tokenAddress).transferFrom(
             address(this),
