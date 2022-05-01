@@ -180,7 +180,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
             raffles[raffleId].endTimestamp < block.timestamp,
             "Raffle has not ended"
         );
-        require(raffles[raffleId].seed == 0, "Seed already initialized");
+        require(raffles[raffleId].seed == 0, "Seed already requested");
         // Will revert if subscription is not set and funded.
         uint256 requestId = COORDINATOR.requestRandomWords(
             keyHash,
@@ -200,6 +200,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
         override
     {
         uint256 raffleId = requestIdToRaffleId[requestId];
+        require(raffles[raffleId].seed == 0, "Seed already initialized");
         raffles[raffleId].seed = uint96(randomWords[0]);
     }
 
