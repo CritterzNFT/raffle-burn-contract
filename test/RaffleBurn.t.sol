@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./mock/CheatCodes.sol";
-import "./mock/DummyERC721.sol";
-import "./mock/DummyERC20.sol";
-import "./mock/MockVRFCoordinator.sol";
+import "./mocks/CheatCodes.sol";
+import "./mocks/MockERC721.sol";
+import "./mocks/MockERC20.sol";
+import "./mocks/MockVRFCoordinator.sol";
 import "../src/RaffleBurn.sol";
 import "forge-std/console.sol";
 
@@ -13,13 +13,13 @@ abstract contract RaffleBurnHelper is CheatCodesDSTest {
 
     RaffleBurn rb;
 
-    DummyERC721 nft1;
-    DummyERC721 nft2;
-    DummyERC721 nft3;
+    MockERC721 nft1;
+    MockERC721 nft2;
+    MockERC721 nft3;
 
-    DummyERC20 t1;
-    DummyERC20 t2;
-    DummyERC20 t3;
+    MockERC20 t1;
+    MockERC20 t2;
+    MockERC20 t3;
 
     uint256 constant PRICE = 100e18;
     uint256 constant DURATION = 100;
@@ -39,12 +39,12 @@ abstract contract RaffleBurnHelper is CheatCodesDSTest {
 
     function setUp() public {
         rb = new RaffleBurn(address(vrfCoordinator));
-        nft1 = new DummyERC721();
-        nft2 = new DummyERC721();
-        nft3 = new DummyERC721();
-        t1 = new DummyERC20();
-        t2 = new DummyERC20();
-        t3 = new DummyERC20();
+        nft1 = new MockERC721();
+        nft2 = new MockERC721();
+        nft3 = new MockERC721();
+        t1 = new MockERC20();
+        t2 = new MockERC20();
+        t3 = new MockERC20();
         mintTokens();
     }
 
@@ -79,7 +79,7 @@ abstract contract RaffleBurnHelper is CheatCodesDSTest {
         public
         returns (uint256 raffleId)
     {
-        DummyERC721(prizeToken).setApprovalForAll(address(rb), true);
+        MockERC721(prizeToken).setApprovalForAll(address(rb), true);
         uint96[] memory tokenIds = new uint96[](1);
         tokenIds[0] = uint96(nft1.tokenOfOwnerByIndex(address(this), 0));
         raffleId = rb.createRaffle(
