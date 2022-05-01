@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
+import "chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import "chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
-contract RaffleBurn {
+contract RaffleBurn is VRFConsumerBaseV2 {
     struct Prize {
         address tokenAddress;
         uint96 tokenId;
@@ -23,19 +25,24 @@ contract RaffleBurn {
         uint48 startTimestamp;
         uint48 endTimestamp;
         uint256 ticketPrice;
-        bytes32 requestId;
     }
 
     /*
     GLOBAL STATE
     */
 
+    VRFCoordinatorV2Interface COORDINATOR;
+
     uint256 public raffleCount;
 
     mapping(uint256 => Raffle) public raffles;
     mapping(uint256 => Prize[]) public rafflePrizes;
     mapping(uint256 => Ticket[]) public raffleTickets;
-    mapping(bytes32 => uint256) public requestIdToRaffleId;
+    mapping(uint256 => uint256) public requestIdToRaffleId;
+
+    constructor(address vrfCoordinator) VRFConsumerBaseV2(vrfCoordinator) {
+        COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
+    }
 
     /*
     WRITE FUNCTIONS
@@ -74,7 +81,6 @@ contract RaffleBurn {
             startTimestamp: startTimestamp,
             endTimestamp: endTimestamp,
             ticketPrice: ticketPrice,
-            requestId: bytes32(0),
             seed: 0
         });
 
@@ -165,32 +171,34 @@ contract RaffleBurn {
     /**
      * Initialize seed for raffle
      */
-    function initializeSeed(uint256 raffleId) public {
-        Raffle memory raffle = raffles[raffleId];
-        require(raffle.endTimestamp < block.timestamp, "Raffle has not ended");
-        require(raffle.seed == 0, "Seed already initialized");
-        fakeRequestRandomWords(raffleId);
-    }
-
-    /**
-     * Fake chainlink request
-     */
-    function fakeRequestRandomWords(uint256 raffleId) internal {
-        // generate pseudo random words
-        bytes32 requestId = bytes32(abi.encodePacked(block.number));
+    function initializeSeed(
+        uint256 raffleId,
+        bytes32 keyHash,
+        uint64 subscriptionId
+    ) public {
+        require(
+            raffles[raffleId].endTimestamp < block.timestamp,
+            "Raffle has not ended"
+        );
+        require(raffles[raffleId].seed == 0, "Seed already initialized");
+        // Will revert if subscription is not set and funded.
+        uint256 requestId = COORDINATOR.requestRandomWords(
+            keyHash,
+            subscriptionId,
+            3,
+            300000,
+            1
+        );
         requestIdToRaffleId[requestId] = raffleId;
-        uint256[] memory randomWords = new uint256[](1);
-        randomWords[0] = uint256(keccak256(abi.encodePacked(block.timestamp)));
-        fulfillRandomWords(requestId, randomWords);
     }
 
     /**
      * Callback function used by VRF Coordinator
      */
-    function fulfillRandomWords(bytes32 requestId, uint256[] memory randomWords)
+    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords)
         internal
+        override
     {
-        // TODO replace with chainlink
         uint256 raffleId = requestIdToRaffleId[requestId];
         raffles[raffleId].seed = uint96(randomWords[0]);
     }

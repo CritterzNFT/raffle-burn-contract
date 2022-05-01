@@ -4,10 +4,13 @@ pragma solidity ^0.8.13;
 import "./mock/CheatCodes.sol";
 import "./mock/DummyERC721.sol";
 import "./mock/DummyERC20.sol";
+import "./mock/MockVRFCoordinator.sol";
 import "../src/RaffleBurn.sol";
 import "forge-std/console.sol";
 
 abstract contract RaffleBurnHelper is CheatCodesDSTest {
+    MockVRFCoordinator vrfCoordinator = new MockVRFCoordinator();
+
     RaffleBurn rb;
 
     DummyERC721 nft1;
@@ -35,13 +38,13 @@ abstract contract RaffleBurnHelper is CheatCodesDSTest {
     address dead = address(0xdead);
 
     function setUp() public {
+        rb = new RaffleBurn(address(vrfCoordinator));
         nft1 = new DummyERC721();
         nft2 = new DummyERC721();
         nft3 = new DummyERC721();
         t1 = new DummyERC20();
         t2 = new DummyERC20();
         t3 = new DummyERC20();
-        rb = new RaffleBurn();
         mintTokens();
     }
 
@@ -114,15 +117,13 @@ contract CreateRaffleTest is RaffleBurnHelper {
             uint96 seed,
             uint48 startTimestamp,
             uint48 endTimestamp,
-            uint256 ticketPrice,
-            bytes32 requestId
+            uint256 ticketPrice
         ) = rb.raffles(raffleId);
         assertEq(paymentToken, address(t1));
         assertEq(seed, 0);
         assertEq(startTimestamp, uint48(block.timestamp));
         assertEq(endTimestamp, uint48(block.timestamp + 100));
         assertEq(ticketPrice, 100e18);
-        assertEq(requestId, bytes32(0));
 
         for (uint96 i = 0; i < tokenIds.length; i++) {
             // prize token should be owned by contract
@@ -355,7 +356,9 @@ contract InitializeSeedTest is RaffleBurnHelper {
         uint256 raffleId = createDummyRaffle(address(nft1), address(t1));
         t1.approve(address(rb), MAX_ALLOWANCE);
         cheats.warp(block.timestamp + DURATION + 1);
-        rb.initializeSeed(raffleId);
+        rb.initializeSeed(raffleId, bytes32(0), uint64(0));
+        (, uint96 seed, , , ) = rb.raffles(raffleId);
+        assertTrue(seed != uint96(0));
     }
 
     function testCannotInitializeSeed() public {
@@ -364,7 +367,7 @@ contract InitializeSeedTest is RaffleBurnHelper {
         // initialize too early
         cheats.warp(block.timestamp + DURATION);
         cheats.expectRevert(bytes("Raffle has not ended"));
-        rb.initializeSeed(raffleId);
+        rb.initializeSeed(raffleId, bytes32(0), uint64(0));
     }
 }
 
@@ -374,7 +377,7 @@ contract ClaimPrizeTest is RaffleBurnHelper {
         t1.approve(address(rb), MAX_ALLOWANCE);
         rb.buyTickets(raffleId, 5);
         cheats.warp(block.timestamp + DURATION + 1);
-        rb.initializeSeed(raffleId);
+        rb.initializeSeed(raffleId, bytes32(0), uint64(0));
         uint256 prizeIndex = 0;
         uint256 ticketId = rb.getWinnerTicketId(raffleId, prizeIndex);
         address winner = rb.getWinner(raffleId, prizeIndex);
