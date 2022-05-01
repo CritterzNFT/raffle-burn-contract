@@ -37,7 +37,7 @@ abstract contract RaffleBurnHelper is CheatCodesDSTest {
     address a3 = 0x0000000000000000000000000000000000000003;
     address dead = address(0xdead);
 
-    function setUp() public {
+    function setUp() public virtual {
         rb = new RaffleBurn(address(vrfCoordinator));
         nft1 = new MockERC721();
         nft2 = new MockERC721();
@@ -381,18 +381,92 @@ contract InitializeSeedTest is RaffleBurnHelper {
 }
 
 contract ClaimPrizeTest is RaffleBurnHelper {
-    function testClaimPrize() public {
-        uint256 raffleId = createDummyRaffle(address(nft1), address(t1));
+    uint256 raffleId;
+
+    function setUp() public override {
+        super.setUp();
+        raffleId = createDummyRaffle(address(nft1), address(t1));
+
+        uint96[] memory tokenIds = new uint96[](2);
+        tokenIds[0] = uint96(nft2.tokenOfOwnerByIndex(a1, 0));
+        tokenIds[1] = uint96(nft2.tokenOfOwnerByIndex(a1, 1));
+        cheats.startPrank(a1);
+        nft2.setApprovalForAll(address(rb), true);
+        rb.addPrizes(raffleId, address(nft2), tokenIds);
+        cheats.stopPrank();
+
         t1.approve(address(rb), MAX_ALLOWANCE);
         rb.buyTickets(raffleId, 5);
+
+        cheats.startPrank(a1);
+        t1.approve(address(rb), MAX_ALLOWANCE);
+        rb.buyTickets(raffleId, 4);
+        cheats.stopPrank();
+
+        cheats.startPrank(a2);
+        t1.approve(address(rb), MAX_ALLOWANCE);
+        rb.buyTickets(raffleId, 3);
+        cheats.stopPrank();
+    }
+
+    function testClaimPrize() public {
         cheats.warp(block.timestamp + DURATION + 1);
         rb.initializeSeed(raffleId, bytes32(0), uint64(0));
+
         uint256 prizeIndex = 0;
         (address account, uint256 ticketPurchaseIndex, ) = rb.getWinner(
             raffleId,
             prizeIndex
         );
         rb.claimPrize(account, raffleId, prizeIndex, ticketPurchaseIndex);
+
+        (, , , bool claimed) = rb.rafflePrizes(raffleId, prizeIndex);
+        assertTrue(claimed);
         assertEq(nft1.ownerOf(0), account);
+    }
+
+    function testSeedNotSet() public {
+        cheats.expectRevert(bytes("Seed not set"));
+        rb.claimPrize(address(0), 0, 0, 0);
+    }
+
+    function testNotTicketOwner() public {
+        cheats.warp(block.timestamp + DURATION + 1);
+        rb.initializeSeed(raffleId, bytes32(0), uint64(0));
+        cheats.expectRevert(bytes("Not ticket owner"));
+        rb.claimPrize(a3, 0, 0, 0);
+    }
+
+    function testNotWinnerTicket(uint32 warpOffset) public {
+        cheats.warp(block.timestamp + DURATION + 1 + warpOffset);
+        rb.initializeSeed(raffleId, bytes32(0), uint64(0));
+        uint256 prizeIndex = 0;
+        (
+            address loserAccount,
+            uint256 loserTicketPurchaseIndex
+        ) = getFirstLoser(prizeIndex);
+        cheats.expectRevert(bytes("Not winner ticket"));
+        rb.claimPrize(
+            loserAccount,
+            raffleId,
+            prizeIndex,
+            loserTicketPurchaseIndex
+        );
+    }
+
+    function getFirstLoser(uint256 prizeIndex)
+        public
+        view
+        returns (address account, uint256 ticketPurchaseIndex)
+    {
+        (address winnerAccount, , ) = rb.getWinner(raffleId, prizeIndex);
+
+        uint256 purchaseCount = rb.getPurchaseCount(raffleId);
+        for (uint256 i = 0; i < purchaseCount; i++) {
+            (address owner, ) = rb.raffleTickets(raffleId, i);
+            if (owner != winnerAccount) {
+                return (owner, i);
+            }
+        }
     }
 }
