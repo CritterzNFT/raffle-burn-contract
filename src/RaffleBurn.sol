@@ -305,6 +305,46 @@ contract RaffleBurn is VRFConsumerBaseV2 {
             rafflePrizes[raffleId].length;
     }
 
+    /**
+     * @notice get total number of prizes for raffle
+     * @param raffleId the id of the raffle to get number of prizes for
+     * @return prizeCount the number of prizes
+     */
+    function getPrizeCount(uint256 raffleId)
+        external
+        view
+        returns (uint256 prizeCount)
+    {
+        return rafflePrizes[raffleId].length;
+    }
+
+    /**
+     * @notice get total number of purchases for raffle
+     * @param raffleId the id of the raffle to get number of purchases for
+     * @return purchaseCount the number of tickets
+     */
+    function getPurchaseCount(uint256 raffleId)
+        external
+        view
+        returns (uint256 purchaseCount)
+    {
+        return raffleTickets[raffleId].length;
+    }
+
+    /**
+     * @notice get total number of tickets for raffle
+     * @param raffleId the id of the raffle to get number of tickets for
+     * @return ticketCount the number of tickets
+     */
+    function getTicketCount(uint256 raffleId)
+        external
+        view
+        returns (uint256 ticketCount)
+    {
+        return
+            raffleTickets[raffleId][raffleTickets[raffleId].length - 1].endId;
+    }
+
     /*
     MODIFIERS
     */
