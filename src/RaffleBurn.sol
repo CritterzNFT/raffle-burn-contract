@@ -157,11 +157,11 @@ contract RaffleBurn is VRFConsumerBaseV2 {
         );
 
         uint256 winnerTicketId = getWinnerTicketId(raffleId, prizeIndex);
-        uint96 purchaseStartId = ticketPurchaseIndex > 0
-            ? raffleTickets[raffleId][ticketPurchaseIndex - 1].endId
-            : 0;
-        uint96 purchaseEndId = raffleTickets[raffleId][ticketPurchaseIndex]
-            .endId;
+        uint96 purchaseStartId = _getPurchaseStartId(
+            raffleId,
+            ticketPurchaseIndex
+        );
+        uint96 purchaseEndId = _getPurchaseEndId(raffleId, ticketPurchaseIndex);
         require(
             purchaseStartId <= winnerTicketId && winnerTicketId < purchaseEndId,
             "Not winner ticket"
@@ -222,11 +222,11 @@ contract RaffleBurn is VRFConsumerBaseV2 {
         uint256 raffleId,
         uint96 ticketCount
     ) internal {
-        uint256 purchases = raffleTickets[raffleId].length;
-        uint96 ticketEndId = purchases > 0
-            ? raffleTickets[raffleId][purchases - 1].endId + ticketCount
-            : ticketCount;
-        Ticket memory ticket = Ticket({owner: to, endId: ticketEndId});
+        uint96 purchaseEndId = _getPurchaseStartId(
+            raffleId,
+            raffleTickets[raffleId].length
+        ) + ticketCount;
+        Ticket memory ticket = Ticket({owner: to, endId: purchaseEndId});
         raffleTickets[raffleId].push(ticket);
     }
 
@@ -346,6 +346,25 @@ contract RaffleBurn is VRFConsumerBaseV2 {
     {
         return
             raffleTickets[raffleId][raffleTickets[raffleId].length - 1].endId;
+    }
+
+    function _getPurchaseStartId(uint256 raffleId, uint256 ticketPurchaseIndex)
+        private
+        view
+        returns (uint96 endId)
+    {
+        return
+            ticketPurchaseIndex > 0
+                ? raffleTickets[raffleId][ticketPurchaseIndex - 1].endId
+                : 0;
+    }
+
+    function _getPurchaseEndId(uint256 raffleId, uint256 ticketPurchaseIndex)
+        private
+        view
+        returns (uint96 startId)
+    {
+        return raffleTickets[raffleId][ticketPurchaseIndex].endId;
     }
 
     /*
