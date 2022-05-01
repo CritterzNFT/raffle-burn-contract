@@ -369,6 +369,15 @@ contract InitializeSeedTest is RaffleBurnHelper {
         cheats.expectRevert(bytes("Raffle has not ended"));
         rb.initializeSeed(raffleId, bytes32(0), uint64(0));
     }
+
+    function testCannotInitializeSeedTwice() public {
+        uint256 raffleId = createDummyRaffle(address(nft1), address(t1));
+        t1.approve(address(rb), MAX_ALLOWANCE);
+        cheats.warp(block.timestamp + DURATION + 1);
+        rb.initializeSeed(raffleId, bytes32(0), uint64(0));
+        cheats.expectRevert(bytes("Seed already requested"));
+        rb.initializeSeed(raffleId, bytes32(0), uint64(0));
+    }
 }
 
 contract ClaimPrizeTest is RaffleBurnHelper {
