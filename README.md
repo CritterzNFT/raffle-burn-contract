@@ -13,6 +13,10 @@ this project uses [foundry](https://github.com/foundry-rs/foundry)
 
 Chainlink VRF v2 is used to generate the random seed for each raffle. After a raffle ends, anyone with a valid [Chainlink subscription account](https://vrf.chain.link/mainnet) can initialize the seed.
 
+Rinkeby Key Hash (30 gwei): 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc
+
+Mainnet Key Hash (200 gwei): 0x8af398995b04c28e9951adb9721ef74c74f93e6a478f39e7e0777be13527e7ef
+
 # Deployment
 
 ## Rinkeby
