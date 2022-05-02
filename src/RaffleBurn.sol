@@ -21,10 +21,10 @@ contract RaffleBurn is VRFConsumerBaseV2 {
 
     struct Raffle {
         address paymentToken;
-        uint96 seed;
         uint48 startTimestamp;
         uint48 endTimestamp;
-        uint256 ticketPrice;
+        uint160 ticketPrice;
+        uint96 seed;
     }
 
     /*
@@ -64,7 +64,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
         address paymentToken,
         uint48 startTimestamp,
         uint48 endTimestamp,
-        uint256 ticketPrice
+        uint160 ticketPrice
     ) external returns (uint256 raffleId) {
         require(prizeToken != address(0), "prizeToken cannot be null");
         require(paymentToken != address(0), "paymentToken cannot be null");
@@ -124,7 +124,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
      */
     function buyTickets(uint256 raffleId, uint96 ticketCount) external {
         // transfer payment token from account
-        uint256 cost = raffles[raffleId].ticketPrice * ticketCount;
+        uint256 cost = uint256(raffles[raffleId].ticketPrice) * ticketCount;
         IERC20(raffles[raffleId].paymentToken).transferFrom(
             msg.sender,
             address(0xdead),
@@ -382,7 +382,8 @@ contract RaffleBurn is VRFConsumerBaseV2 {
         view
         returns (uint256 ticketSales)
     {
-        return getTicketCount(raffleId) * raffles[raffleId].ticketPrice;
+        return
+            getTicketCount(raffleId) * uint256(raffles[raffleId].ticketPrice);
     }
 
     function _getPurchaseStartId(uint256 raffleId, uint256 ticketPurchaseIndex)

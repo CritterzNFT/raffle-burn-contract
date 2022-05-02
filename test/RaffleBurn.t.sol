@@ -88,7 +88,7 @@ abstract contract RaffleBurnHelper is CheatCodesDSTest {
             paymentToken,
             uint48(block.timestamp),
             uint48(block.timestamp + DURATION),
-            PRICE
+            uint160(PRICE)
         );
     }
 }
@@ -114,10 +114,10 @@ contract CreateRaffleTest is RaffleBurnHelper {
         // check raffle data
         (
             address paymentToken,
-            uint96 seed,
             uint48 startTimestamp,
             uint48 endTimestamp,
-            uint256 ticketPrice
+            uint160 ticketPrice,
+            uint96 seed
         ) = rb.raffles(raffleId);
         assertEq(paymentToken, address(t1));
         assertEq(seed, 0);
@@ -357,7 +357,7 @@ contract InitializeSeedTest is RaffleBurnHelper {
         t1.approve(address(rb), MAX_ALLOWANCE);
         cheats.warp(block.timestamp + DURATION + 1);
         rb.initializeSeed(raffleId, bytes32(0), uint64(0));
-        (, uint96 seed, , , ) = rb.raffles(raffleId);
+        (, , , , uint96 seed) = rb.raffles(raffleId);
         assertTrue(seed != uint96(0));
     }
 
