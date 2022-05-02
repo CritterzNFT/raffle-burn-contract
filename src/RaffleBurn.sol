@@ -320,7 +320,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
      * @return ticketCount the number of tickets
      */
     function getAccountTicketCount(uint256 raffleId, address account)
-        external
+        public
         view
         returns (uint256 ticketCount)
     {
@@ -338,7 +338,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
      * @return prizeCount the number of prizes
      */
     function getPrizeCount(uint256 raffleId)
-        external
+        public
         view
         returns (uint256 prizeCount)
     {
@@ -351,7 +351,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
      * @return purchaseCount the number of tickets
      */
     function getPurchaseCount(uint256 raffleId)
-        external
+        public
         view
         returns (uint256 purchaseCount)
     {
@@ -378,7 +378,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
      * @return ticketSales the number of tickets
      */
     function getTicketSales(uint256 raffleId)
-        external
+        public
         view
         returns (uint256 ticketSales)
     {
