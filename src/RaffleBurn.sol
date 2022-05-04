@@ -7,6 +7,29 @@ import "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 contract RaffleBurn is VRFConsumerBaseV2 {
+    event RaffleCreated(
+        uint256 raffleId,
+        address indexed from,
+        address indexed paymentToken,
+        uint256 ticketPrice,
+        uint256 startTimestamp,
+        uint256 endTimestamp
+    );
+
+    event PrizeAdded(
+        uint256 raffleId,
+        address indexed from,
+        address indexed prizeToken,
+        uint256 tokenId
+    );
+
+    event TicketsPurchased(
+        uint256 raffleId,
+        address indexed to,
+        uint256 startId,
+        uint256 amount
+    );
+
     struct Prize {
         address tokenAddress;
         uint96 tokenId;
@@ -84,6 +107,15 @@ contract RaffleBurn is VRFConsumerBaseV2 {
             seed: 0
         });
 
+        emit RaffleCreated(
+            raffleId,
+            msg.sender,
+            paymentToken,
+            ticketPrice,
+            startTimestamp,
+            endTimestamp
+        );
+
         addPrizes(raffleId, prizeToken, tokenIds);
     }
 
@@ -114,6 +146,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
                     claimed: false
                 })
             );
+            emit PrizeAdded(raffleId, msg.sender, prizeToken, tokenIds[i]);
         }
     }
 
@@ -222,12 +255,19 @@ contract RaffleBurn is VRFConsumerBaseV2 {
         uint256 raffleId,
         uint96 ticketCount
     ) internal {
-        uint96 purchaseEndId = _getPurchaseStartId(
+        uint96 purchaseStartId = _getPurchaseStartId(
             raffleId,
             raffleTickets[raffleId].length
-        ) + ticketCount;
+        );
+        uint96 purchaseEndId = purchaseStartId + ticketCount;
         Ticket memory ticket = Ticket({owner: to, endId: purchaseEndId});
         raffleTickets[raffleId].push(ticket);
+        emit TicketsPurchased(
+            raffleId,
+            msg.sender,
+            purchaseStartId,
+            ticketCount
+        );
     }
 
     /*
