@@ -156,6 +156,8 @@ contract RaffleBurn is VRFConsumerBaseV2 {
      * @param ticketCount the number of tickets to buy
      */
     function buyTickets(uint256 raffleId, uint96 ticketCount) external {
+        require(raffleStarted(raffleId), "Raffle not started");
+        require(!raffleEnded(raffleId), "Raffle ended");
         // transfer payment token from account
         uint256 cost = uint256(raffles[raffleId].ticketPrice) * ticketCount;
         IERC20(raffles[raffleId].paymentToken).transferFrom(
@@ -216,10 +218,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
         bytes32 keyHash,
         uint64 subscriptionId
     ) external {
-        require(
-            raffles[raffleId].endTimestamp < block.timestamp,
-            "Raffle has not ended"
-        );
+        require(raffleEnded(raffleId), "Raffle not ended");
         require(raffles[raffleId].seed == 0, "Seed already requested");
         // Will revert if subscription is not set and funded.
         uint256 requestId = COORDINATOR.requestRandomWords(
@@ -424,6 +423,28 @@ contract RaffleBurn is VRFConsumerBaseV2 {
     {
         return
             getTicketCount(raffleId) * uint256(raffles[raffleId].ticketPrice);
+    }
+
+    /**
+     * @notice check if raffle ended
+     * @param raffleId the id of the raffle to check
+     * @return ended true if ended
+     */
+    function raffleEnded(uint256 raffleId) public view returns (bool ended) {
+        return raffles[raffleId].endTimestamp <= block.timestamp;
+    }
+
+    /**
+     * @notice check if raffle started
+     * @param raffleId the id of the raffle to check
+     * @return started true if started
+     */
+    function raffleStarted(uint256 raffleId)
+        public
+        view
+        returns (bool started)
+    {
+        return raffles[raffleId].startTimestamp <= block.timestamp;
     }
 
     function _getPurchaseStartId(uint256 raffleId, uint256 ticketPurchaseIndex)

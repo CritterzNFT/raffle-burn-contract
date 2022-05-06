@@ -349,31 +349,59 @@ contract BuyTicketsTest is RaffleBurnHelper {
         cheats.expectRevert(bytes("ERC20: transfer amount exceeds balance"));
         rb.buyTickets(raffleId, ticketCount);
     }
+
+    function testCannotBuyTicketsBeforeStart() public {
+        address prizeToken = address(nft1);
+        address paymentToken = address(t1);
+        MockERC721(prizeToken).setApprovalForAll(address(rb), true);
+        uint96[] memory tokenIds = new uint96[](1);
+        tokenIds[0] = uint96(nft1.tokenOfOwnerByIndex(address(this), 0));
+        uint256 raffleId = rb.createRaffle(
+            prizeToken,
+            tokenIds,
+            paymentToken,
+            uint48(block.timestamp + 1),
+            uint48(block.timestamp + DURATION),
+            uint160(PRICE)
+        );
+
+        t1.approve(address(rb), MAX_ALLOWANCE);
+        cheats.expectRevert(bytes("Raffle not started"));
+        rb.buyTickets(raffleId, 1);
+    }
+
+    function testCannotBuyTicketsAfterEnd() public {
+        uint256 raffleId = createDummyRaffle(address(nft1), address(t1));
+        t1.approve(address(rb), MAX_ALLOWANCE);
+        cheats.warp(block.timestamp + DURATION);
+        cheats.expectRevert(bytes("Raffle ended"));
+        rb.buyTickets(raffleId, 1);
+    }
 }
 
 contract InitializeSeedTest is RaffleBurnHelper {
     function testInitializeSeed() public {
         uint256 raffleId = createDummyRaffle(address(nft1), address(t1));
         t1.approve(address(rb), MAX_ALLOWANCE);
-        cheats.warp(block.timestamp + DURATION + 1);
+        cheats.warp(block.timestamp + DURATION);
         rb.initializeSeed(raffleId, bytes32(0), uint64(0));
         (, , , , uint96 seed) = rb.raffles(raffleId);
         assertTrue(seed != uint96(0));
     }
 
-    function testCannotInitializeSeed() public {
+    function testRaffleNotEnded() public {
         uint256 raffleId = createDummyRaffle(address(nft1), address(t1));
         t1.approve(address(rb), MAX_ALLOWANCE);
         // initialize too early
-        cheats.warp(block.timestamp + DURATION);
-        cheats.expectRevert(bytes("Raffle has not ended"));
+        cheats.warp(block.timestamp + DURATION - 1);
+        cheats.expectRevert(bytes("Raffle not ended"));
         rb.initializeSeed(raffleId, bytes32(0), uint64(0));
     }
 
     function testCannotInitializeSeedTwice() public {
         uint256 raffleId = createDummyRaffle(address(nft1), address(t1));
         t1.approve(address(rb), MAX_ALLOWANCE);
-        cheats.warp(block.timestamp + DURATION + 1);
+        cheats.warp(block.timestamp + DURATION);
         rb.initializeSeed(raffleId, bytes32(0), uint64(0));
         cheats.expectRevert(bytes("Seed already requested"));
         rb.initializeSeed(raffleId, bytes32(0), uint64(0));
@@ -410,7 +438,7 @@ contract ClaimPrizeTest is RaffleBurnHelper {
     }
 
     function testClaimPrize() public {
-        cheats.warp(block.timestamp + DURATION + 1);
+        cheats.warp(block.timestamp + DURATION);
         rb.initializeSeed(raffleId, bytes32(0), uint64(0));
 
         uint256 prizeIndex = 0;
@@ -431,14 +459,14 @@ contract ClaimPrizeTest is RaffleBurnHelper {
     }
 
     function testNotTicketOwner() public {
-        cheats.warp(block.timestamp + DURATION + 1);
+        cheats.warp(block.timestamp + DURATION);
         rb.initializeSeed(raffleId, bytes32(0), uint64(0));
         cheats.expectRevert(bytes("Not ticket owner"));
         rb.claimPrize(a3, 0, 0, 0);
     }
 
     function testNotWinnerTicket(uint32 warpOffset) public {
-        cheats.warp(block.timestamp + DURATION + 1 + warpOffset);
+        cheats.warp(block.timestamp + DURATION + warpOffset);
         rb.initializeSeed(raffleId, bytes32(0), uint64(0));
         uint256 prizeIndex = 0;
         (
