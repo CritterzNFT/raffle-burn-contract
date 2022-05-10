@@ -446,7 +446,7 @@ contract ClaimPrizeTest is RaffleBurnHelper {
             raffleId,
             prizeIndex
         );
-        rb.claimPrize(account, raffleId, prizeIndex, ticketPurchaseIndex);
+        rb.claimPrize(raffleId, prizeIndex, ticketPurchaseIndex);
 
         (, , , bool claimed) = rb.rafflePrizes(raffleId, prizeIndex);
         assertTrue(claimed);
@@ -455,31 +455,16 @@ contract ClaimPrizeTest is RaffleBurnHelper {
 
     function testSeedNotSet() public {
         cheats.expectRevert(bytes("Seed not set"));
-        rb.claimPrize(address(0), 0, 0, 0);
-    }
-
-    function testNotTicketOwner() public {
-        cheats.warp(block.timestamp + DURATION);
-        rb.initializeSeed(raffleId, bytes32(0), uint64(0));
-        cheats.expectRevert(bytes("Not ticket owner"));
-        rb.claimPrize(a3, 0, 0, 0);
+        rb.claimPrize(0, 0, 0);
     }
 
     function testNotWinnerTicket(uint32 warpOffset) public {
         cheats.warp(block.timestamp + DURATION + warpOffset);
         rb.initializeSeed(raffleId, bytes32(0), uint64(0));
         uint256 prizeIndex = 0;
-        (
-            address loserAccount,
-            uint256 loserTicketPurchaseIndex
-        ) = getFirstLoser(prizeIndex);
+        (, uint256 loserTicketPurchaseIndex) = getFirstLoser(prizeIndex);
         cheats.expectRevert(bytes("Not winner ticket"));
-        rb.claimPrize(
-            loserAccount,
-            raffleId,
-            prizeIndex,
-            loserTicketPurchaseIndex
-        );
+        rb.claimPrize(raffleId, prizeIndex, loserTicketPurchaseIndex);
     }
 
     function getFirstLoser(uint256 prizeIndex)

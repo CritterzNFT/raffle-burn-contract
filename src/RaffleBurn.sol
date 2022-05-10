@@ -171,12 +171,11 @@ contract RaffleBurn is VRFConsumerBaseV2 {
 
     /**
      * @notice claim prize
-     * @param to the winner address to send the prize to
+     * @param raffleId the id of the raffle to buy ticket for
      * @param prizeIndex the index of the prize to claim
      * @param ticketPurchaseIndex the index of the ticket purchase to claim prize for
      */
     function claimPrize(
-        address to,
         uint256 raffleId,
         uint256 prizeIndex,
         uint256 ticketPurchaseIndex
@@ -186,11 +185,8 @@ contract RaffleBurn is VRFConsumerBaseV2 {
             rafflePrizes[raffleId][prizeIndex].claimed == false,
             "Prize already claimed"
         );
-        require(
-            to == raffleTickets[raffleId][ticketPurchaseIndex].owner,
-            "Not ticket owner"
-        );
 
+        address to = raffleTickets[raffleId][ticketPurchaseIndex].owner;
         uint256 winnerTicketId = getWinnerTicketId(raffleId, prizeIndex);
         uint96 purchaseStartId = _getPurchaseStartId(
             raffleId,
