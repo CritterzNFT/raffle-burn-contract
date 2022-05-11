@@ -5,6 +5,7 @@ import "chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import "./IERC20Burnable.sol";
 
 contract RaffleBurn is VRFConsumerBaseV2 {
     event RaffleCreated(
@@ -44,8 +45,9 @@ contract RaffleBurn is VRFConsumerBaseV2 {
 
     struct Raffle {
         address paymentToken;
-        uint48 startTimestamp;
-        uint48 endTimestamp;
+        bool burnable;
+        uint40 startTimestamp;
+        uint40 endTimestamp;
         uint160 ticketPrice;
         uint96 seed;
     }
@@ -85,8 +87,9 @@ contract RaffleBurn is VRFConsumerBaseV2 {
         address prizeToken,
         uint96[] calldata tokenIds,
         address paymentToken,
-        uint48 startTimestamp,
-        uint48 endTimestamp,
+        bool burnable,
+        uint40 startTimestamp,
+        uint40 endTimestamp,
         uint160 ticketPrice
     ) external returns (uint256 raffleId) {
         require(prizeToken != address(0), "prizeToken cannot be null");
@@ -101,6 +104,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
 
         raffles[raffleId] = Raffle({
             paymentToken: paymentToken,
+            burnable: burnable,
             startTimestamp: startTimestamp,
             endTimestamp: endTimestamp,
             ticketPrice: ticketPrice,
@@ -160,11 +164,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
         require(!raffleEnded(raffleId), "Raffle ended");
         // transfer payment token from account
         uint256 cost = uint256(raffles[raffleId].ticketPrice) * ticketCount;
-        IERC20(raffles[raffleId].paymentToken).transferFrom(
-            msg.sender,
-            address(0xdead),
-            cost
-        );
+        _burnTokens(raffleId, msg.sender, cost);
         // give tickets to account
         _mintTickets(msg.sender, raffleId, ticketCount);
     }
@@ -263,6 +263,25 @@ contract RaffleBurn is VRFConsumerBaseV2 {
             purchaseStartId,
             ticketCount
         );
+    }
+
+    function _burnTokens(
+        uint256 raffleId,
+        address from,
+        uint256 amount
+    ) internal {
+        if (raffles[raffleId].burnable) {
+            IERC20Burnable(raffles[raffleId].paymentToken).burnFrom(
+                from,
+                amount
+            );
+        } else {
+            IERC20(raffles[raffleId].paymentToken).transferFrom(
+                from,
+                address(0xdead),
+                amount
+            );
+        }
     }
 
     /*

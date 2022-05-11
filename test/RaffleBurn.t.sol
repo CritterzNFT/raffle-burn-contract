@@ -86,8 +86,9 @@ abstract contract RaffleBurnHelper is CheatCodesDSTest {
             prizeToken,
             tokenIds,
             paymentToken,
-            uint48(block.timestamp),
-            uint48(block.timestamp + DURATION),
+            false,
+            uint40(block.timestamp),
+            uint40(block.timestamp + DURATION),
             uint160(PRICE)
         );
     }
@@ -103,8 +104,9 @@ contract CreateRaffleTest is RaffleBurnHelper {
             address(nft1),
             tokenIds,
             address(t1),
-            uint48(block.timestamp),
-            uint48(block.timestamp + 100),
+            false,
+            uint40(block.timestamp),
+            uint40(block.timestamp + 100),
             100e18
         );
 
@@ -114,15 +116,17 @@ contract CreateRaffleTest is RaffleBurnHelper {
         // check raffle data
         (
             address paymentToken,
-            uint48 startTimestamp,
-            uint48 endTimestamp,
+            bool burnable,
+            uint40 startTimestamp,
+            uint40 endTimestamp,
             uint160 ticketPrice,
             uint96 seed
         ) = rb.raffles(raffleId);
         assertEq(paymentToken, address(t1));
+        assertTrue(!burnable);
         assertEq(seed, 0);
-        assertEq(startTimestamp, uint48(block.timestamp));
-        assertEq(endTimestamp, uint48(block.timestamp + 100));
+        assertEq(startTimestamp, uint40(block.timestamp));
+        assertEq(endTimestamp, uint40(block.timestamp + 100));
         assertEq(ticketPrice, 100e18);
 
         for (uint96 i = 0; i < tokenIds.length; i++) {
@@ -163,8 +167,9 @@ contract CreateRaffleTest is RaffleBurnHelper {
             address(nft1),
             tokenIds,
             address(t1),
-            uint48(block.timestamp),
-            uint48(block.timestamp + 100),
+            false,
+            uint40(block.timestamp),
+            uint40(block.timestamp + 100),
             100e18
         );
     }
@@ -177,8 +182,9 @@ contract CreateRaffleTest is RaffleBurnHelper {
             address(0),
             tokenIds,
             address(t2),
-            uint48(0),
-            uint48(block.timestamp),
+            false,
+            uint40(0),
+            uint40(block.timestamp),
             100e18
         );
     }
@@ -191,8 +197,9 @@ contract CreateRaffleTest is RaffleBurnHelper {
             address(nft3),
             tokenIds,
             address(0),
-            uint48(0),
-            uint48(block.timestamp),
+            false,
+            uint40(0),
+            uint40(block.timestamp),
             100e18
         );
     }
@@ -205,8 +212,9 @@ contract CreateRaffleTest is RaffleBurnHelper {
             address(nft1),
             tokenIds,
             address(t3),
-            uint48(block.timestamp),
-            uint48(block.timestamp),
+            false,
+            uint40(block.timestamp),
+            uint40(block.timestamp),
             100e18
         );
     }
@@ -219,8 +227,9 @@ contract CreateRaffleTest is RaffleBurnHelper {
             address(nft1),
             tokenIds,
             address(t3),
-            uint48(block.timestamp),
-            uint48(block.timestamp + DURATION),
+            false,
+            uint40(block.timestamp),
+            uint40(block.timestamp + DURATION),
             0
         );
     }
@@ -239,8 +248,9 @@ contract CreateRaffleTest is RaffleBurnHelper {
             address(nft1),
             tokenIds,
             address(t3),
-            uint48(block.timestamp),
-            uint48(block.timestamp + DURATION),
+            false,
+            uint40(block.timestamp),
+            uint40(block.timestamp + DURATION),
             1e18
         );
 
@@ -251,8 +261,9 @@ contract CreateRaffleTest is RaffleBurnHelper {
             address(nft1),
             tokenIds,
             address(t3),
-            uint48(block.timestamp),
-            uint48(block.timestamp + DURATION),
+            false,
+            uint40(block.timestamp),
+            uint40(block.timestamp + DURATION),
             1e18
         );
     }
@@ -326,8 +337,39 @@ contract BuyTicketsTest is RaffleBurnHelper {
         cheats.assume(allowance >= ticketCount * PRICE);
         uint256 raffleId = createDummyRaffle(address(nft1), address(t1));
         t1.approve(address(rb), allowance);
+        uint256 balanceBefore = t1.balanceOf(address(this));
         rb.buyTickets(raffleId, ticketCount);
+        uint256 balanceAfter = t1.balanceOf(address(this));
+        assertEq(balanceBefore - balanceAfter, PRICE * ticketCount);
         assertEq(t1.balanceOf(dead), PRICE * ticketCount);
+    }
+
+    function testBuyTicketsBurnable(uint256 allowance, uint96 ticketCount)
+        public
+    {
+        cheats.assume(allowance >= ticketCount * PRICE);
+        address prizeToken = address(nft1);
+        address paymentToken = address(t1);
+        MockERC721(prizeToken).setApprovalForAll(address(rb), true);
+        uint96[] memory tokenIds = new uint96[](1);
+        tokenIds[0] = uint96(nft1.tokenOfOwnerByIndex(address(this), 0));
+        uint256 raffleId = rb.createRaffle(
+            prizeToken,
+            tokenIds,
+            paymentToken,
+            true,
+            uint40(block.timestamp),
+            uint40(block.timestamp + DURATION),
+            uint160(PRICE)
+        );
+        t1.approve(address(rb), allowance);
+        uint256 balanceBefore = t1.balanceOf(address(this));
+        uint256 totalSupplyBefore = t1.totalSupply();
+        rb.buyTickets(raffleId, ticketCount);
+        uint256 balanceAfter = t1.balanceOf(address(this));
+        uint256 totalSupplyAfter = t1.totalSupply();
+        assertEq(balanceBefore - balanceAfter, PRICE * ticketCount);
+        assertEq(totalSupplyBefore - totalSupplyAfter, PRICE * ticketCount);
     }
 
     function testCannotBuyTicketsAllowance(
@@ -360,8 +402,9 @@ contract BuyTicketsTest is RaffleBurnHelper {
             prizeToken,
             tokenIds,
             paymentToken,
-            uint48(block.timestamp + 1),
-            uint48(block.timestamp + DURATION),
+            false,
+            uint40(block.timestamp + 1),
+            uint40(block.timestamp + DURATION),
             uint160(PRICE)
         );
 
@@ -385,7 +428,7 @@ contract InitializeSeedTest is RaffleBurnHelper {
         t1.approve(address(rb), MAX_ALLOWANCE);
         cheats.warp(block.timestamp + DURATION);
         rb.initializeSeed(raffleId, bytes32(0), uint64(0));
-        (, , , , uint96 seed) = rb.raffles(raffleId);
+        (, , , , , uint96 seed) = rb.raffles(raffleId);
         assertTrue(seed != uint96(0));
     }
 
