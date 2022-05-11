@@ -9,7 +9,7 @@ import "./IERC20Burnable.sol";
 
 contract RaffleBurn is VRFConsumerBaseV2 {
     event RaffleCreated(
-        uint256 raffleId,
+        uint256 indexed raffleId,
         address indexed from,
         address indexed paymentToken,
         uint256 ticketPrice,
@@ -18,14 +18,14 @@ contract RaffleBurn is VRFConsumerBaseV2 {
     );
 
     event PrizeAdded(
-        uint256 raffleId,
+        uint256 indexed raffleId,
         address indexed from,
         address indexed prizeToken,
         uint256 tokenId
     );
 
     event TicketsPurchased(
-        uint256 raffleId,
+        uint256 indexed raffleId,
         address indexed to,
         uint256 startId,
         uint256 amount
