@@ -31,6 +31,8 @@ contract RaffleBurn is VRFConsumerBaseV2 {
         uint256 amount
     );
 
+    event SeedInitialized(uint256 indexed raffleId, uint256 indexed requestId);
+
     struct Prize {
         address tokenAddress;
         uint96 tokenId;
@@ -237,6 +239,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
         uint256 raffleId = requestIdToRaffleId[requestId];
         require(raffles[raffleId].seed == 0, "Seed already initialized");
         raffles[raffleId].seed = uint96(randomWords[0]);
+        emit SeedInitialized(raffleId, requestId);
     }
 
     /**
