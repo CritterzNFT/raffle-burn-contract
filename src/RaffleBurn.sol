@@ -80,6 +80,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
      * @param prizeToken the address of the ERC721 token to raffle off
      * @param tokenIds the list of token ids to raffle off
      * @param paymentToken address of the ERC20 token used to buy tickets. Null address uses ETH
+     * @param burnable whether payment token can be burned with `burnFrom(address account, uint256 amount)`
      * @param startTimestamp the timestamp at which the raffle starts
      * @param endTimestamp the timestamp at which the raffle ends
      * @param ticketPrice the price of each ticket
