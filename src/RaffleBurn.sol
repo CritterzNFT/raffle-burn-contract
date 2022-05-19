@@ -353,7 +353,7 @@ contract RaffleBurn is VRFConsumerBaseV2 {
         // add salt to seed
         ticketId =
             uint256(keccak256((abi.encode(raffleId, prizeIndex)))) %
-            rafflePrizes[raffleId].length;
+            getTicketCount(raffleId);
     }
 
     /**
